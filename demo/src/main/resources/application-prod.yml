@@ -1,0 +1,84 @@
+# ==============================================================================
+# CẤU HÌNH MÔI TRƯỜNG SẢN PHẨM (APPLICATION-PROD.YML)
+# Profile: prod
+# Mục tiêu: Tối đa hóa bảo mật (OWASP), hiệu năng cao và an toàn toàn vẹn dữ liệu
+# Tuân thủ: Khuyến nghị bảo mật 12-Factor App & Production-Ready
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. BẢO VỆ THÔNG TIN LỖI (CHỐNG INFORMATION DISCLOSURE - OWASP)
+# ------------------------------------------------------------------------------
+server:
+  error:
+    # Tuyệt đối không hiển thị nội dung thông báo lỗi exception ra client
+    include-message: never
+    # Không để lộ chi tiết binding validation errors ở phản hồi mặc định
+    include-binding-errors: never
+    # Không xuất stacktrace ra response để tránh lộ cấu trúc mã nguồn, framework hay DB
+    include-stacktrace: never
+
+spring:
+  # ----------------------------------------------------------------------------
+  # 2. KẾT NỐI DATABASE & TỐI ƯU CONNECTION POOL HIKARICP
+  # ----------------------------------------------------------------------------
+  datasource:
+    # Driver JDBC cho kết nối MySQL
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # Bắt buộc inject URL qua biến môi trường DB_URL, tuyệt đối không hardcode
+    url: ${DB_URL}
+    # Bắt buộc inject username Database qua biến môi trường DB_USERNAME
+    username: ${DB_USERNAME:root}
+    # Bắt buộc inject password Database qua biến môi trường DB_PASSWORD
+    password: ${DB_PASSWORD:123456}
+    hikari:
+      # Số lượng kết nối tối đa trong pool phục vụ lượng truy cập lớn đồng thời
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      # Số lượng kết nối rảnh rỗi tối thiểu luôn duy trì sẵn sàng trong pool
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      # Thời gian tối đa (ms) một kết nối rảnh rỗi trước khi bị đóng (300000ms = 5 phút)
+      idle-timeout: 300000
+      # Thời gian tối đa (ms) chờ đợi lấy kết nối từ pool trước khi ném lỗi timeout (20000ms = 20 giây)
+      connection-timeout: 20000
+      # Vòng đời tối đa (ms) của một kết nối trong pool để giải phóng tài nguyên (1200000ms = 20 phút)
+      max-lifetime: 1200000
+
+  # ----------------------------------------------------------------------------
+  # 3. BẢO VỆ TOÀN VẸN DỮ LIỆU (DATABASE SCHEMA SAFETY)
+  # ----------------------------------------------------------------------------
+  jpa:
+    hibernate:
+      # Chế độ 'validate': Chỉ kiểm tra khớp schema, tuyệt đối không tự ý alter/drop bảng
+      ddl-auto: validate
+    # Tắt in SQL ra console nhằm giảm tải I/O và tránh rò rỉ dữ liệu nhạy cảm ra log file
+    show-sql: false
+
+  # ----------------------------------------------------------------------------
+  # 4. TỐI ƯU HIỆU NĂNG TEMPLATE ENGINE
+  # ----------------------------------------------------------------------------
+  thymeleaf:
+    # Bật cache template đã compile vào RAM để tăng tốc render email và tiết kiệm CPU
+    cache: true
+
+# ------------------------------------------------------------------------------
+# 5. THẮT CHẶT THỜI GIAN SỐNG CỦA JWT TOKEN (HARDENING TOKEN EXPIRATION)
+# ------------------------------------------------------------------------------
+laivu:
+  jwt:
+    # Rút ngắn hạn Access Token xuống 1 giờ theo chuẩn khuyến nghị OWASP (3600 giây)
+    access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY:3600}
+    # Giới hạn hạn dùng Refresh Token tối đa 7 ngày (604800 giây)
+    refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY:604800}
+
+# ------------------------------------------------------------------------------
+# 6. LOGGING MỨC AN TOÀN (PRODUCTION SAFE LOGGING)
+# ------------------------------------------------------------------------------
+logging:
+  level:
+    # Mức ghi log hệ thống chung ở cấp độ INFO
+    root: INFO
+    # Chỉ cảnh báo sự cố Security, không ghi log tràn lan payload/token nhạy cảm của user
+    org.springframework.security: WARN
+    # Ghi log nghiệp vụ dự án ở mức INFO
+    vn.laivu.jobhunter: INFO
+    com.example.demo: INFO
+

@@ -1,0 +1,53 @@
+# ==============================================================================
+# CẤU HÌNH MÔI TRƯỜNG PHÁT TRIỂN (APPLICATION-DEV.YML)
+# Profile: dev
+# Mục tiêu: Tiện lợi cho lập trình viên, tự động hóa schema và bật logging chi tiết
+# ==============================================================================
+
+spring:
+  # ----------------------------------------------------------------------------
+  # 1. KẾT NỐI CƠ SỞ DỮ LIỆU DEV (LOCAL DATABASE / MYSQL)
+  # ----------------------------------------------------------------------------
+  datasource:
+    # Driver JDBC kết nối tới hệ quản trị cơ sở dữ liệu MySQL
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # URL kết nối MySQL cục bộ, ưu tiên nạp từ biến môi trường DB_URL khi chạy qua Docker/CI
+    url: ${DB_URL:jdbc:mysql://localhost:3306/biology?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    # Tên tài khoản kết nối Database (nạp từ biến môi trường DB_USERNAME hoặc application-local.yml)
+    username: ${DB_USERNAME:root}
+    # Mật khẩu kết nối Database (để trống nạp từ biến môi trường DB_PASSWORD hoặc application-local.yml)
+    password: ${DB_PASSWORD:123456}
+
+  # ----------------------------------------------------------------------------
+  # 2. TỰ ĐỘNG HÓA HIBERNATE & DEBUG SQL
+  # ----------------------------------------------------------------------------
+  jpa:
+    hibernate:
+      # Tự động so sánh Java Entity và cập nhật/tạo mới cấu trúc bảng trong MySQL khi sửa code
+      ddl-auto: update
+    # In toàn bộ các câu truy vấn SQL ra console khi ứng dụng thực thi
+    show-sql: true
+    properties:
+      hibernate:
+        # Thụt lề và format câu lệnh SQL chuẩn đẹp, trực quan khi debug
+        format_sql: true
+
+  # ----------------------------------------------------------------------------
+  # 3. TỐI ƯU TRẢI NGHIỆM LẬP TRÌNH EMAIL TEMPLATE
+  # ----------------------------------------------------------------------------
+  thymeleaf:
+    # Tắt cache template để hỗ trợ hot-reload ngay khi sửa file HTML email mà không cần khởi động lại server
+    cache: false
+
+# ------------------------------------------------------------------------------
+# 4. CẤU HÌNH MỨC ĐỘ GHI LOG (LOGGING)
+# ------------------------------------------------------------------------------
+logging:
+  level:
+    # In chi tiết toàn bộ chuỗi Security Filter, AuthenticationToken và kiểm tra quyền hạn
+    org.springframework.security: DEBUG
+    # In chi tiết log các Service, Controller thuộc package dự án
+    vn.laivu.jobhunter: DEBUG
+    # Bổ sung log DEBUG cho package mặc định com.example.demo
+    com.example.demo: DEBUG
+

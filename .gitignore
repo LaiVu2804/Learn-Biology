@@ -1,0 +1,48 @@
+# IDE / Editor files
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+.settings/
+.project
+.classpath
+.factorypath
+.apt_generated
+.springBeans
+.sts4-cache
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.eslintcache
+.stylelintcache
+
+# Java / Gradle
+.gradle/
+build/
+bin/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Sensitive configs
+**/application-local.yml
+application-local.yml
+.env
+.env.*
+!.env.example
+
+# Root orphan lockfile
+/package-lock.json
+
+# Agent / AI tools
+.agents/
+skills-lock.json
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

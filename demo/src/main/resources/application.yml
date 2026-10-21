@@ -1,0 +1,127 @@
+
+server:
+  # Cổng lắng nghe HTTP của ứng dụng, ưu tiên nạp từ SERVER_PORT (mặc định 8080)
+  port: ${SERVER_PORT:8080}
+  servlet:
+    # Context path gốc của ứng dụng (toàn bộ API bắt đầu từ root "/")
+    context-path: /
+
+spring:
+  application:
+    # Tên định danh của ứng dụng trong hệ thống và logs
+    name: biology
+
+  # ----------------------------------------------------------------------------
+  # 2. CƠ CHẾ ĐA PROFILE & BẢO MẬT SECRET (ZERO-SECRET-IN-GIT)
+  # ----------------------------------------------------------------------------
+  profiles:
+    # Profile hoạt động mặc định là 'dev', cho phép ghi đè qua biến môi trường SPRING_PROFILES_ACTIVE
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  config:
+    # Nạp tùy chọn cấu hình bí mật cục bộ (mật khẩu máy dev), không báo lỗi nếu thiếu file
+    import: "optional:classpath:application-local.yml"
+
+  docker:
+    compose:
+      # Tắt mặc định để ưu tiên MySQL cục bộ đang chạy, bật lại bằng DOCKER_COMPOSE_ENABLED=true
+      enabled: ${DOCKER_COMPOSE_ENABLED:false}
+      file: compose.yaml
+
+  # ----------------------------------------------------------------------------
+  # CẤU HÌNH ĐĂNG NHẬP OAUTH2 GOOGLE & SESSION
+  # ----------------------------------------------------------------------------
+  session:
+    # Tắt lưu session trên Redis vì môi trường local dev không bật Redis, tránh lỗi 500
+    store-type: none
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+
+  # ----------------------------------------------------------------------------
+  # 3. QUẢN LÝ UPLOAD FILE & PHÂN TRANG (PAGINATION)
+  # ----------------------------------------------------------------------------
+  servlet:
+    multipart:
+      # Giới hạn kích thước tối đa cho mỗi file tải lên (50MB)
+      max-file-size: 50MB
+      # Giới hạn kích thước tối đa cho toàn bộ multipart request (50MB)
+      max-request-size: 50MB
+
+  data:
+    web:
+      pageable:
+        # Chuẩn hóa trang bắt đầu từ 1 thay vì 0, đồng bộ giao diện người dùng Frontend
+        one-indexed-parameters: true
+
+  # ----------------------------------------------------------------------------
+  # 4. EMAIL SERVICE & TEMPLATE ENGINE
+  # ----------------------------------------------------------------------------
+  thymeleaf:
+    # Thư mục gốc chứa các file mẫu giao diện HTML (phục vụ render email động)
+    prefix: classpath:/templates/
+    # Định dạng phần mở rộng của file template
+    suffix: .html
+    # Chế độ xử lý template tuân theo chuẩn HTML5
+    mode: HTML
+    # Bảng mã ký tự sử dụng khi biên dịch template
+    encoding: UTF-8
+
+  mail:
+    # Địa chỉ máy chủ gửi mail SMTP (mặc định dịch vụ Gmail smtp.gmail.com)
+    host: ${MAIL_HOST:smtp.gmail.com}
+    # Cổng kết nối SMTP có mã hóa STARTTLS (587)
+    port: ${MAIL_PORT:587}
+    # Tên tài khoản email gửi (để trống nạp từ biến môi trường hoặc application-local.yml)
+    username: ${MAIL_USERNAME:}
+    # Mật khẩu ứng dụng (App Password) gửi mail (nạp từ biến môi trường hoặc file local)
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          # Bật cơ chế xác thực tài khoản đăng nhập khi kết nối SMTP
+          auth: true
+          starttls:
+            # Bật giao thức mã hóa đường truyền an toàn TLS/STARTTLS
+            enable: true
+          # Thời gian chờ tối đa khi thiết lập kết nối TCP tới SMTP server (5000ms = 5s)
+          connectiontimeout: 5000
+          # Thời gian chờ tối đa khi đọc dữ liệu từ SMTP server (5000ms = 5s)
+          timeout: 5000
+          # Thời gian chờ tối đa khi ghi gửi dữ liệu đến SMTP server (5000ms = 5s)
+          writetimeout: 5000
+
+# ------------------------------------------------------------------------------
+# 5. ĐỊNH DANH API & THÔNG SỐ TÙY BIẾN (CUSTOM PROPERTIES)
+# ------------------------------------------------------------------------------
+api:
+  # Tiền tố phiên bản API dùng trong định tuyến Controller (ví dụ: /api/v1/...)
+  version: "v1"
+
+laivu:
+  jwt:
+    # Chuỗi bí mật Base64 dùng ký thuật toán HMAC-SHA512 (bắt buộc nạp từ biến môi trường JWT_SECRET)
+    base64-secret: ${JWT_SECRET}
+    # Thời hạn hiệu lực của Access Token tính bằng giây (86400s = 1 ngày cho môi trường dev)
+    access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY:30}
+    # Thời hạn hiệu lực của Refresh Token tính bằng giây (864000s = 10 ngày cho môi trường dev)
+    refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY:10080}
+
+  upload-file:
+    # Đường dẫn lưu trữ tập tin upload trên máy chủ, mặc định lưu vào thư mục ./upload/
+    base-uri: ${UPLOAD_BASE_URI:file:///./upload/}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
