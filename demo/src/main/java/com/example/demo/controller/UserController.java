@@ -1,11 +1,11 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.ReqCreateUserDTO;
-import com.example.demo.dto.ReqUpdateUserDTO;
-import com.example.demo.dto.ResUpdateDTO;
-import com.example.demo.dto.RestCreateUserDTO;
-import com.example.demo.dto.RestUserDTO;
-import com.example.demo.dto.ResultPaginationDTO;
+import com.example.demo.domain.request.user.ReqCreateUserDTO;
+import com.example.demo.domain.request.user.ReqUpdateUserDTO;
+import com.example.demo.domain.response.ResultPaginationDTO;
+import com.example.demo.domain.response.user.RestCreateUserDTO;
+import com.example.demo.domain.response.user.RestUpdateUserDTO;
+import com.example.demo.domain.response.user.RestUserDTO;
 import com.example.demo.entity.User;
 import com.example.demo.service.UserService;
 import com.example.demo.util.annotation.ApiMessage;
@@ -51,7 +51,7 @@ public class UserController {
             throw new IdInvalidException("ID người dùng không hợp lệ");
         }
 
-        // Bước 2: Truy vấn User từ database
+        // Bước 2: Truy vấn User từ database (hoặc Redis Cache)
         User currentUser = this.userService.fetchUserById(id);
 
         // Bước 3: Kiểm tra sự tồn tại của người dùng
@@ -65,10 +65,9 @@ public class UserController {
 
     @PutMapping("/users")
     @ApiMessage("Update user success !")
-    public ResponseEntity<ResUpdateDTO> updateUser(@Valid @RequestBody ReqUpdateUserDTO reqUser)
+    public ResponseEntity<RestUpdateUserDTO> updateUser(@Valid @RequestBody ReqUpdateUserDTO reqUser)
             throws IdInvalidException {
-        // Gọi duy nhất 1 lần tránh lặp truy vấn DB
-        ResUpdateDTO updatedUser = this.userService.handleUpdateUser(reqUser);
+        RestUpdateUserDTO updatedUser = this.userService.handleUpdateUser(reqUser);
         return ResponseEntity.ok(updatedUser);
     }
 

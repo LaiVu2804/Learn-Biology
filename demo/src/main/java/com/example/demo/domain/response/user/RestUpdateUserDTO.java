@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.demo.domain.response.user;
 
 import com.example.demo.util.constant.GenderEnum;
 import lombok.AllArgsConstructor;
@@ -12,8 +12,7 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResUpdateDTO {
-
+public class RestUpdateUserDTO {
     private long id;
     private String name;
     private GenderEnum gender;

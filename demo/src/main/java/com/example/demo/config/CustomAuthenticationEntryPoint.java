@@ -1,7 +1,6 @@
 package com.example.demo.config;
 
-import com.example.demo.dto.RestResponse;
-
+import com.example.demo.domain.response.RestResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

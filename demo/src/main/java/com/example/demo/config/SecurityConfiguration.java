@@ -1,5 +1,6 @@
 package com.example.demo.config;
 
+import com.example.demo.service.TokenRedisService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -61,12 +64,17 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder() {
+    public JwtDecoder jwtDecoder(TokenRedisService tokenRedisService) {
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(
                 getSecretKey()).macAlgorithm(MacAlgorithm.HS512).build();
         return token -> {
             try {
-                return jwtDecoder.decode(token);
+                Jwt decoded = jwtDecoder.decode(token);
+                String jti = decoded.getId();
+                if (jti != null && tokenRedisService.isTokenBlacklisted(jti)) {
+                    throw new BadJwtException("Token này đã bị thu hồi hoặc đăng xuất. Vui lòng đăng nhập lại!");
+                }
+                return decoded;
             } catch (Exception e) {
                 System.out.println(">>> JWT error: " + e.getMessage());
                 throw e;

@@ -1,6 +1,6 @@
 package com.example.demo.util.error;
 
-import com.example.demo.dto.RestResponse;
+import com.example.demo.domain.response.RestResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;

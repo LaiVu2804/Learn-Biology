@@ -29,6 +29,29 @@ spring:
       file: compose.yaml
 
   # ----------------------------------------------------------------------------
+  # CẤU HÌNH REDIS & CACHE
+  # ----------------------------------------------------------------------------
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 1000ms
+    web:
+      pageable:
+        # Chuẩn hóa trang bắt đầu từ 1 thay vì 0, đồng bộ giao diện người dùng Frontend
+        one-indexed-parameters: true
+
+  cache:
+    type: redis
+
+  # ----------------------------------------------------------------------------
   # CẤU HÌNH ĐĂNG NHẬP OAUTH2 GOOGLE & SESSION
   # ----------------------------------------------------------------------------
   session:
@@ -57,12 +80,6 @@ spring:
       max-file-size: 50MB
       # Giới hạn kích thước tối đa cho toàn bộ multipart request (50MB)
       max-request-size: 50MB
-
-  data:
-    web:
-      pageable:
-        # Chuẩn hóa trang bắt đầu từ 1 thay vì 0, đồng bộ giao diện người dùng Frontend
-        one-indexed-parameters: true
 
   # ----------------------------------------------------------------------------
   # 4. EMAIL SERVICE & TEMPLATE ENGINE
@@ -110,11 +127,11 @@ api:
 
 laivu:
   jwt:
-    # Chuỗi bí mật Base64 dùng ký thuật toán HMAC-SHA512 (bắt buộc nạp từ biến môi trường JWT_SECRET)
+
     base64-secret: ${JWT_SECRET}
-    # Thời hạn hiệu lực của Access Token tính bằng giây (86400s = 1 ngày cho môi trường dev)
+
     access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY:30}
-    # Thời hạn hiệu lực của Refresh Token tính bằng giây (864000s = 10 ngày cho môi trường dev)
+
     refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY:10080}
 
   upload-file:

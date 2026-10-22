@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.demo.domain.request.user;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ReqLoginDTO {
 
-    @NotBlank(message = "Username không được để trống")
+    @NotBlank(message = "Username/Email không được để trống")
     private String username;
 
     @NotBlank(message = "Password không được để trống")

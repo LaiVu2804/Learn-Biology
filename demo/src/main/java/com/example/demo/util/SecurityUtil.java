@@ -1,6 +1,6 @@
 package com.example.demo.util;
 
-import com.example.demo.dto.RestLoginDTO;
+import com.example.demo.domain.response.user.RestLoginDTO;
 import com.nimbusds.jose.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -23,6 +23,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class SecurityUtil {
@@ -71,6 +72,18 @@ public class SecurityUtil {
         return Optional.ofNullable(extractPrincipal(securityContext.getAuthentication()));
     }
 
+    /**
+     * Lấy đối tượng Jwt của người dùng hiện tại từ SecurityContext
+     */
+    public static Optional<Jwt> getCurrentUserJwt() {
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        Authentication authentication = securityContext.getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            return Optional.of(jwt);
+        }
+        return Optional.empty();
+    }
+
     private static String extractPrincipal(Authentication authentication) {
         if (authentication == null) {
             return null;
@@ -102,7 +115,10 @@ public class SecurityUtil {
         List<String> listAuthority = new ArrayList<>();
         listAuthority.add("ROLE_USER");
 
+        String jti = UUID.randomUUID().toString();
+
         JwtClaimsSet claims = JwtClaimsSet.builder()
+                .id(jti)
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)

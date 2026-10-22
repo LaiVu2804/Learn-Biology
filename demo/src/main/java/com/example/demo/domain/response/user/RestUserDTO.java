@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.demo.domain.response.user;
 
 import com.example.demo.util.constant.GenderEnum;
 import lombok.AllArgsConstructor;
@@ -12,8 +12,7 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RestCreateUserDTO {
-
+public class RestUserDTO {
     private long id;
     private String name;
     private String email;
@@ -21,13 +20,24 @@ public class RestCreateUserDTO {
     private String address;
     private int age;
     private Instant createdAt;
+    private Instant updatedAt;
     private CompanyUser company;
+    private RoleUser role;
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CompanyUser {
+        private long id;
+        private String name;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RoleUser {
         private long id;
         private String name;
     }

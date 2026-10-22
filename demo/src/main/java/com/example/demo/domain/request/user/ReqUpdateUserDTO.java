@@ -1,26 +1,28 @@
-package com.example.demo.dto;
+package com.example.demo.domain.request.user;
 
 import com.example.demo.util.constant.GenderEnum;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResCreateUserDTO {
+public class ReqUpdateUserDTO {
 
-    private long id;
+    @NotNull(message = "ID không được để trống")
+    private Long id;
+
     private String name;
-    private String email;
+
     private int age;
+
     private GenderEnum gender;
+
     private String address;
-    private Instant createdAt;
-    private String createdBy;
+
 }
 

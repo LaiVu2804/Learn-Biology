@@ -1,6 +1,6 @@
 package com.example.demo.util;
 
-import com.example.demo.dto.RestResponse;
+import com.example.demo.domain.response.RestResponse;
 import com.example.demo.util.annotation.ApiMessage;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.MethodParameter;

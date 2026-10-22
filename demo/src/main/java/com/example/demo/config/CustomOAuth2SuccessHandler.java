@@ -1,7 +1,8 @@
 package com.example.demo.config;
 
-import com.example.demo.dto.RestLoginDTO;
+import com.example.demo.domain.response.user.RestLoginDTO;
 import com.example.demo.entity.User;
+import com.example.demo.service.TokenRedisService;
 import com.example.demo.service.UserService;
 import com.example.demo.util.SecurityUtil;
 import jakarta.servlet.ServletException;
@@ -25,6 +26,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final UserService userService;
     private final SecurityUtil securityUtil;
     private final PasswordEncoder passwordEncoder;
+    private final TokenRedisService tokenRedisService;
 
     @Value("${laivu.jwt.refresh-token-validity-in-seconds:864000}")
     private long refreshTokenExpiration;
@@ -35,10 +37,12 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     public CustomOAuth2SuccessHandler(
             UserService userService,
             SecurityUtil securityUtil,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            TokenRedisService tokenRedisService) {
         this.userService = userService;
         this.securityUtil = securityUtil;
         this.passwordEncoder = passwordEncoder;
+        this.tokenRedisService = tokenRedisService;
     }
 
     @Override
@@ -78,8 +82,9 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             // 3. Tạo cặp JWT Token (Access Token & Refresh Token)
             String refreshToken = this.securityUtil.createRefreshToken(email, res);
 
-            // 4. Lưu Refresh Token vào Database
-            this.userService.updateUserToken(refreshToken, email);
+            // 4. Lưu Refresh Token vào Redis
+            this.tokenRedisService.saveRefreshToken(email, refreshToken, this.refreshTokenExpiration);
+            // this.userService.updateUserToken(refreshToken, email);
 
             // 5. Gán HttpOnly Cookie an toàn cho Refresh Token (chống XSS & CSRF)
             ResponseCookie resCookie = ResponseCookie

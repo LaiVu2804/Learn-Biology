@@ -1,0 +1,103 @@
+services:
+  # ---------------------------------------------
+  # Dịch vụ Database MySQL 8.0
+  # ---------------------------------------------
+  mysqldb:
+    image: mysql:8.0
+    container_name: biology-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: biology
+    ports:
+      # Ánh xạ 3307 máy host vào 3306 container (tránh xung đột nếu host đã chạy MySQL cổng 3306)
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - biology-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ---------------------------------------------
+  # Dịch vụ Redis Cache
+  # ---------------------------------------------
+  redis:
+    image: redis:6.2-alpine
+    container_name: biology-redis
+    hostname: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB;FLUSHALL
+    networks:
+      - biology-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------
+  # Dịch vụ Backend Spring Boot
+  # ---------------------------------------------
+  backend:
+    build:
+      context: ./demo
+      dockerfile: Dockerfile
+    container_name: biology-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:mysql://mysqldb:3306/biology?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      DB_USERNAME: root
+      DB_PASSWORD: "123456"
+      UPLOAD_BASE_URI: file:///app/upload/
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-543647258091-7582k830dfeqga093b156lrabetb1od2.apps.googleusercontent.com}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-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}
+      JWT_SECRET: ${JWT_SECRET:-Y4bX22b0WWhiVXn2rAspmiclbfIHskLDh6YZDhSQVyw1V8KiLiujnrXWkV53m9uuo7SiNm9LyT2OoNFyuVzDTQ==}
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - upload_data:/app/upload
+    networks:
+      - biology-network
+
+  # ---------------------------------------------
+  # Dịch vụ Frontend React + Vite (Nginx)
+  # ---------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: biology-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - biology-network
+
+# Volume lưu trữ dữ liệu bền vững
+volumes:
+  mysql_data:
+  upload_data:
+
+# Mạng ảo kết nối giữa các container
+networks:
+  biology-network:
+    driver: bridge

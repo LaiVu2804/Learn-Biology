@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.demo.domain.response.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -25,7 +25,15 @@ public class RestLoginDTO {
         private long id;
         private String email;
         private String name;
-        private Object role;
+        private Role role;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserGetAccount {
+        private UserLogin user;
     }
 
     @Getter
@@ -42,8 +50,9 @@ public class RestLoginDTO {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class UserGetAccount {
-        private UserLogin user;
+    public static class Role {
+        private long id;
+        private String name;
     }
 }
 
