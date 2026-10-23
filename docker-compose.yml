@@ -1,0 +1,177 @@
+# ==============================================================================
+# DOCKER COMPOSE CONFIGURATION - LEARN BIOLOGY PROJECT
+# Kiến trúc: Frontend (Nginx/React) + Backend (Spring Boot) + MySQL + Redis
+# Tiêu chuẩn: Zero-Hardcoded Secrets (toàn bộ thông tin nhạy cảm nạp từ file .env)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. DATABASE SERVICE (MySQL 8.0)
+  # ----------------------------------------------------------------------------
+  mysqldb:
+    image: mysql:8.0
+    container_name: biology-mysql
+    restart: unless-stopped
+    environment:
+      # Bắt buộc nạp từ file .env (Quy trình bảo mật nghiêm ngặt: Tuyệt đối không fallback password)
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?Error: DB_ROOT_PASSWORD must be defined in .env}"
+      MYSQL_DATABASE: "${DB_NAME:-biology}"
+    # An toàn bảo mật: Chỉ bind cổng vào 127.0.0.1 của máy host để tránh lộ ra ngoài Internet
+    ports:
+      - "${MYSQL_BIND_IP:-127.0.0.1}:${MYSQL_LOCAL_PORT:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - biology-network
+    healthcheck:
+      # Sử dụng biến nội bộ container $${MYSQL_ROOT_PASSWORD}, không truyền text mật khẩu
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 2. CACHE & TOKEN BLACKLIST SERVICE (Redis 7)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: biology-redis
+    restart: unless-stopped
+    command: >
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-server --requirepass "$$REDIS_PASSWORD"
+        else
+          redis-server
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    # An toàn bảo mật: Chỉ bind cổng vào 127.0.0.1 của máy host
+    ports:
+      - "${REDIS_BIND_IP:-127.0.0.1}:${REDIS_LOCAL_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - biology-network
+    healthcheck:
+      test: >
+        sh -c '
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG
+          else
+            redis-cli ping | grep PONG
+          fi
+        '
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 3. BACKEND SERVICE (Spring Boot - Java 21)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: biology-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      # Profile hoạt động: 'dev' hoặc 'prod'
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+
+      # Kết nối Cơ sở dữ liệu nội bộ qua tên dịch vụ 'mysqldb'
+      DB_URL: "jdbc:mysql://host.docker.internal:3306/${DB_NAME:-biology}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh"
+      DB_USERNAME: "${DB_USERNAME:-root}"
+      DB_PASSWORD: "${DB_PASSWORD:?Error: DB_PASSWORD must be defined in .env}"
+
+      # Kết nối Redis nội bộ qua tên dịch vụ 'redis'
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+
+      # Cấu hình lưu trữ tệp tin upload bên trong container
+      UPLOAD_BASE_URI: file:///app/upload/
+
+      # Khóa bí mật JWT (Mã hóa Base64 cho HMAC-SHA512)
+      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET must be defined in .env}"
+      JWT_ACCESS_TOKEN_VALIDITY: ${JWT_ACCESS_TOKEN_VALIDITY:-3600}
+      JWT_REFRESH_TOKEN_VALIDITY: ${JWT_REFRESH_TOKEN_VALIDITY:-604800}
+
+      # Cấu hình OAuth2 Google
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+      # Cấu hình Email SMTP (Gmail)
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/upload
+    networks:
+      - biology-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 4. FRONTEND SERVICE (React + Vite served by Nginx)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: biology-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - biology-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ==============================================================================
+# VOLUMES - BẢO LƯU DỮ LIỆU BỀN VỮNG (PERSISTENCE)
+# ==============================================================================
+volumes:
+  mysql_data:
+    name: biology_mysql_data
+  redis_data:
+    name: biology_redis_data
+  backend_uploads:
+    name: biology_backend_uploads
+
+# ==============================================================================
+# NETWORKS - MẠNG CẦU NỘI BỘ (ISOLATED BRIDGE NETWORK)
+# ==============================================================================
+networks:
+  biology-network:
+    name: biology-network
+    driver: bridge
