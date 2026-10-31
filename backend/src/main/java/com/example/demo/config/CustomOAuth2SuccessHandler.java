@@ -14,6 +14,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +29,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final PasswordEncoder passwordEncoder;
     private final TokenRedisService tokenRedisService;
 
-    @Value("${laivu.jwt.refresh-token-validity-in-seconds:864000}")
+    @Value("${laivu.jwt.refresh-token-validity-in-seconds:604800}")
     private long refreshTokenExpiration;
 
     @Value("${laivu.oauth2.frontend-redirect-url:http://localhost:3000/oauth2/redirect}")
@@ -82,9 +83,15 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
             // 3. Tạo cặp JWT Token (Access Token & Refresh Token)
             String refreshToken = this.securityUtil.createRefreshToken(email, res);
 
+            // Trích xuất JTI để lưu định danh vào Redis
+            String refreshJti = null;
+            try {
+                Jwt decodedRt = this.securityUtil.checkValueRefreshToken(refreshToken);
+                refreshJti = decodedRt.getId();
+            } catch (Exception ignored) {}
+
             // 4. Lưu Refresh Token vào Redis
-            this.tokenRedisService.saveRefreshToken(email, refreshToken, this.refreshTokenExpiration);
-            // this.userService.updateUserToken(refreshToken, email);
+            this.tokenRedisService.saveRefreshToken(email, refreshJti, refreshToken, this.refreshTokenExpiration);
 
             // 5. Gán HttpOnly Cookie an toàn cho Refresh Token (chống XSS & CSRF)
             ResponseCookie resCookie = ResponseCookie
@@ -104,4 +111,3 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }
     }
 }
-

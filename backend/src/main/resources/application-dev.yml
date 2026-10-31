@@ -14,9 +14,9 @@ spring:
     # URL kết nối MySQL cục bộ, ưu tiên nạp từ biến môi trường DB_URL khi chạy qua Docker/CI
     url: ${DB_URL:jdbc:mysql://localhost:3306/biology?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     # Tên tài khoản kết nối Database (nạp từ biến môi trường DB_USERNAME hoặc application-local.yml)
-    username: ${DB_USERNAME:root}
+    username: ${DB_USERNAME}
     # Mật khẩu kết nối Database (để trống nạp từ biến môi trường DB_PASSWORD hoặc application-local.yml)
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD}
 
   # ----------------------------------------------------------------------------
   # 2. TỰ ĐỘNG HÓA HIBERNATE & DEBUG SQL
@@ -46,8 +46,6 @@ logging:
   level:
     # In chi tiết toàn bộ chuỗi Security Filter, AuthenticationToken và kiểm tra quyền hạn
     org.springframework.security: DEBUG
-    # In chi tiết log các Service, Controller thuộc package dự án
-    vn.laivu.jobhunter: DEBUG
     # Bổ sung log DEBUG cho package mặc định com.example.demo
     com.example.demo: DEBUG
 

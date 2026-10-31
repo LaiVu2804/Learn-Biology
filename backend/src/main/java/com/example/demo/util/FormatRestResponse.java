@@ -39,8 +39,13 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
             return body;
         }
 
+        // Bỏ qua byte array hoặc Resource
+        if (body instanceof byte[] || body instanceof org.springframework.core.io.Resource) {
+            return body;
+        }
+
         String path = request.getURI().getPath();
-        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.startsWith("/actuator")) {
             return body;
         }
 

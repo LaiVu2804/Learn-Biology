@@ -1,4 +1,3 @@
-
 server:
   # Cổng lắng nghe HTTP của ứng dụng, ưu tiên nạp từ SERVER_PORT (mặc định 8080)
   port: ${SERVER_PORT:8080}
@@ -26,7 +25,7 @@ spring:
     compose:
       # Tắt mặc định để ưu tiên MySQL cục bộ đang chạy, bật lại bằng DOCKER_COMPOSE_ENABLED=true
       enabled: ${DOCKER_COMPOSE_ENABLED:false}
-      file: compose.yaml
+      lifecycle-management: ${DOCKER_COMPOSE_LIFECYCLE:none}
 
   # ----------------------------------------------------------------------------
   # CẤU HÌNH REDIS & CACHE
@@ -36,7 +35,7 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       password: ${SPRING_DATA_REDIS_PASSWORD:}
-      timeout: 2000ms
+      timeout: ${REDIS_TIMEOUT:1000ms}
       lettuce:
         pool:
           max-active: 16
@@ -49,7 +48,7 @@ spring:
         one-indexed-parameters: true
 
   cache:
-    type: redis
+    type: ${SPRING_CACHE_TYPE:redis}
 
   # ----------------------------------------------------------------------------
   # CẤU HÌNH ĐĂNG NHẬP OAUTH2 GOOGLE & SESSION
@@ -127,12 +126,9 @@ api:
 
 laivu:
   jwt:
-
     base64-secret: ${JWT_SECRET}
-
-    access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY:30}
-
-    refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY:10080}
+    access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY:3600}
+    refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY:604800}
 
   upload-file:
     # Đường dẫn lưu trữ tập tin upload trên máy chủ, mặc định lưu vào thư mục ./upload/
@@ -142,3 +138,14 @@ logging:
   level:
     org.springframework.security: DEBUG
 
+# PROMETHEUS & ACTUATOR CONFIGURATION
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics,info
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true

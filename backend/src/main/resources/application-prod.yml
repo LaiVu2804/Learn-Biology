@@ -27,9 +27,9 @@ spring:
     # Bắt buộc inject URL qua biến môi trường DB_URL, tuyệt đối không hardcode
     url: ${DB_URL}
     # Bắt buộc inject username Database qua biến môi trường DB_USERNAME
-    username: ${DB_USERNAME:root}
+    username: ${DB_USERNAME}
     # Bắt buộc inject password Database qua biến môi trường DB_PASSWORD
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD}
     hikari:
       # Số lượng kết nối tối đa trong pool phục vụ lượng truy cập lớn đồng thời
       maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
@@ -79,6 +79,5 @@ logging:
     # Chỉ cảnh báo sự cố Security, không ghi log tràn lan payload/token nhạy cảm của user
     org.springframework.security: WARN
     # Ghi log nghiệp vụ dự án ở mức INFO
-    vn.laivu.jobhunter: INFO
     com.example.demo: INFO
 

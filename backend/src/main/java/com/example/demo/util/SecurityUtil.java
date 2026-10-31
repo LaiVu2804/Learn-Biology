@@ -144,7 +144,10 @@ public class SecurityUtil {
         Instant now = Instant.now();
         Instant validity = now.plus(this.refreshTokenExpiration, ChronoUnit.SECONDS);
 
+        String jti = UUID.randomUUID().toString();
+
         JwtClaimsSet claims = JwtClaimsSet.builder()
+                .id(jti)
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)

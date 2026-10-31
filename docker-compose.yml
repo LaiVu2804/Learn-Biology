@@ -22,7 +22,10 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - biology-network
+      biology-network:
+        aliases:
+          - backend
+          - backend-service
     healthcheck:
       # Sử dụng biến nội bộ container $${MYSQL_ROOT_PASSWORD}, không truyền text mật khẩu
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
@@ -59,7 +62,10 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - biology-network
+      biology-network:
+        aliases:
+          - backend
+          - backend-service
     healthcheck:
       test: >
         sh -c '
@@ -129,7 +135,10 @@ services:
     volumes:
       - backend_uploads:/app/upload
     networks:
-      - biology-network
+      biology-network:
+        aliases:
+          - backend
+          - backend-service
     logging:
       driver: "json-file"
       options:
@@ -150,7 +159,56 @@ services:
     depends_on:
       - backend
     networks:
-      - biology-network
+      biology-network:
+        aliases:
+          - backend
+          - backend-service
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 5. MONITORING SERVICE (Prometheus & Grafana)
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      biology-network:
+        aliases:
+          - backend
+          - backend-service
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-grafana}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-password}
+    ports:
+      - "${GRAFANA_PORT:-3100}:3000" # Cổng 3100 để tránh xung đột với Frontend 3000
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards/json
+    networks:
+      biology-network:
+        aliases:
+          - backend
+          - backend-service
     logging:
       driver: "json-file"
       options:
@@ -167,6 +225,8 @@ volumes:
     name: biology_redis_data
   backend_uploads:
     name: biology_backend_uploads
+  grafana_data:
+    name: biology_grafana_data
 
 # ==============================================================================
 # NETWORKS - MẠNG CẦU NỘI BỘ (ISOLATED BRIDGE NETWORK)

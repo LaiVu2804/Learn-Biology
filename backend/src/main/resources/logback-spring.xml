@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Cấu hình Logback dành riêng cho môi trường Test (logback-test.xml)
+    Theo Baeldung Section 6.1 (Locating Configuration Information):
+    Logback luôn ưu tiên tìm kiếm `logback-test.xml` đầu tiên trên classpath trong môi trường testing.
+-->
+<configuration>
+
+    <property name="LOG_DIR" value="./logs" />
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %highlight(%-5level) [%t] %cyan(%logger{36}) - %msg%n" />
+
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] [%X{requestId:-NONE}] %logger{36} - %msg%n" />
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- File Appender ghi toàn bộ log test -->
+    <appender name="TEST_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_DIR}/biology-test.log</file>
+        <append>false</append> <!-- Reset log sau mỗi lần chạy test -->
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Error File Appender chỉ ghi lỗi ERROR với ThresholdFilter -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_DIR}/biology-test-error.log</file>
+        <append>false</append>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="TEST_FILE" />
+        <appender-ref ref="ERROR_FILE" />
+    </root>
+
+    <!-- Package com.example.demo bật mức DEBUG trong test -->
+    <logger name="com.example.demo" level="DEBUG" />
+
+</configuration>

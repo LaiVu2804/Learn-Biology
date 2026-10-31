@@ -23,7 +23,7 @@ import java.time.Duration;
 public class RedisConfig implements CachingConfigurer {
 
     /**
-     * Cấu hình RedisTemplate chuẩn với Key là String và Value dạng JSON
+     * Cấu hình RedisTemplate chuẩn với Key là String và Value dạng JSON an toàn
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
