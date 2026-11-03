@@ -1,14 +1,56 @@
 <!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LearnBiology - Auth Portal</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
 
+<head>
+  <meta charset="UTF-8" />
+  <!-- Official Stitch BioPrep Logo Favicon -->
+  <link rel="icon" type="image/png" href="/bioprep-logo.png" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="apple-touch-icon" href="/bioprep-logo.png" />
+  <meta name="theme-color" content="#006948" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioPrep - Nền tảng Ôn thi & Luyện tập Sinh học Cấp 3</title>
+  <meta name="description" content="BioPrep - Hệ thống khảo thí chuyên sâu Sinh học THPT Quốc gia & Đánh giá năng lực ĐHQG 2025." />
+  <meta property="og:title" content="BioPrep - Cổng Luyện thi Sinh học THPT" />
+  <meta property="og:description" content="Ngân hàng 15.000+ câu hỏi phân hóa thực chiến, chuẩn đề Bộ GD&ĐT 2025." />
+  <meta property="og:image" content="/bioprep-logo.png" />
+
+  <!-- Google Fonts: Be Vietnam Pro & Material Symbols Outlined -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    rel="stylesheet" />
+</head>
+
+<body class="bg-surface font-body-md text-body">
+  <div id="root">
+    <!-- Initial Splash Screen displaying the BioPrep Stitch Logo while JS loads -->
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8fafc; font-family: 'Be Vietnam Pro', sans-serif; color: #0f172a; text-align: center; padding: 20px;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
+        <img
+          src="/bioprep-logo.png"
+          alt="BioPrep Logo - Nền tảng Ôn thi Sinh học THPT"
+          style="height: 54px; width: auto; object-fit: contain;"
+        />
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 22px; font-weight: 700; color: #006948; letter-spacing: -0.02em;">BioPrep</span>
+          <span style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+            Luyện thi THPT 2025
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; margin-top: 4px;">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #10b981; animation: pulse 1.5s infinite;"></span>
+          <span>Đang kết nối hệ thống BioPrep...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

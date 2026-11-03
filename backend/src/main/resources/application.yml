@@ -129,6 +129,9 @@ laivu:
     base64-secret: ${JWT_SECRET}
     access-token-validity-in-seconds: ${JWT_ACCESS_TOKEN_VALIDITY:3600}
     refresh-token-validity-in-seconds: ${JWT_REFRESH_TOKEN_VALIDITY:604800}
+  
+  oauth2:
+    frontend-redirect-url: ${FRONTEND_REDIRECT_URL:http://localhost:3000/oauth2/redirect}
 
   upload-file:
     # Đường dẫn lưu trữ tập tin upload trên máy chủ, mặc định lưu vào thư mục ./upload/
@@ -149,3 +152,6 @@ management:
       show-details: always
     prometheus:
       enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

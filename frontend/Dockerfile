@@ -1,7 +1,3 @@
-# ==============================================================================
-# Multi-stage Dockerfile cho Frontend React + Vite
-# ==============================================================================
-
 # Stage 1: Build source code bằng Node.js 22 Alpine
 FROM node:22-alpine AS builder
 WORKDIR /app

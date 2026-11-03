@@ -38,10 +38,21 @@ export const callLogout = (): Promise<IBackendRes<null>> => {
  * Gọi API Refresh Token
  * Endpoint: POST /api/v1/auth/refresh
  * Trình duyệt sẽ tự động đính kèm Cookie refresh_token (HttpOnly)
+ * Sử dụng cơ chế Deduplication Promise để tránh xung đột Token Rotation khi nhiều nơi gọi cùng lúc
  * @returns Promise<IBackendRes<ILoginResponse>>
  */
+let refreshTokenPromise: Promise<IBackendRes<ILoginResponse>> | null = null;
+
 export const callRefreshToken = (): Promise<IBackendRes<ILoginResponse>> => {
-    return axios.post<any, IBackendRes<ILoginResponse>>("/api/v1/auth/refresh");
+    if (refreshTokenPromise) {
+        return refreshTokenPromise;
+    }
+    refreshTokenPromise = axios
+        .post<any, IBackendRes<ILoginResponse>>("/api/v1/auth/refresh")
+        .finally(() => {
+            refreshTokenPromise = null;
+        });
+    return refreshTokenPromise;
 };
 
 /**
@@ -59,4 +70,3 @@ export const callFetchAccount = (): Promise<IBackendRes<IGetAccount>> => {
 export const callFetchUserById = (id: number | string): Promise<IBackendRes<IUser>> => {
     return axios.get<any, IBackendRes<IUser>>(`/api/v1/users/${id}`);
 };
-

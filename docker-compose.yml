@@ -22,10 +22,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      biology-network:
-        aliases:
-          - backend
-          - backend-service
+      - biology-network
     healthcheck:
       # Sử dụng biến nội bộ container $${MYSQL_ROOT_PASSWORD}, không truyền text mật khẩu
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
@@ -62,10 +59,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      biology-network:
-        aliases:
-          - backend
-          - backend-service
+      - biology-network
     healthcheck:
       test: >
         sh -c '
@@ -159,10 +153,7 @@ services:
     depends_on:
       - backend
     networks:
-      biology-network:
-        aliases:
-          - backend
-          - backend-service
+      - biology-network
     logging:
       driver: "json-file"
       options:
@@ -183,10 +174,7 @@ services:
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
     networks:
-      biology-network:
-        aliases:
-          - backend
-          - backend-service
+      - biology-network
 
   grafana:
     image: grafana/grafana:10.0.0
@@ -205,10 +193,7 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana/dashboards:/etc/grafana/provisioning/dashboards/json
     networks:
-      biology-network:
-        aliases:
-          - backend
-          - backend-service
+      - biology-network
     logging:
       driver: "json-file"
       options:

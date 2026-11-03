@@ -182,6 +182,13 @@ public class AuthController {
                 .body(res);
     }
 
+    @PostMapping("/refresh")
+    @ApiMessage("Get User by refresh token")
+    public ResponseEntity<RestLoginDTO> postRefreshToken(
+            @CookieValue(name = "refresh_token", defaultValue = "") String refreshToken) throws IdInvalidException {
+        return this.getRefreshToken(refreshToken);
+    }
+
     @PostMapping("/register")
     public ResponseEntity<RestCreateUserDTO> register(@Valid @RequestBody User reqUser) throws IdInvalidException {
         // 1. Kiểm tra email đã tồn tại hay chưa

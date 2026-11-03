@@ -34,11 +34,11 @@ const OAuth2RedirectHandler: React.FC = () => {
                 const isSuccess = await triggerSilentRefresh();
                 if (isSuccess) {
                     notification.success({
-                        message: "Đăng nhập Google thành công! 🎉",
+                        message: "Đăng nhập Google thành công!",
                         description: "Xác thực bảo mật hoàn tất. Chào mừng bạn đã quay trở lại!",
                         duration: 3,
                     });
-                    navigate("/", { replace: true });
+                    navigate("/home", { replace: true });
                 } else {
                     notification.error({
                         message: "Đăng nhập thất bại",
@@ -61,9 +61,18 @@ const OAuth2RedirectHandler: React.FC = () => {
     }, [triggerSilentRefresh, navigate, searchParams]);
 
     return (
-        <div style={{ /* giữ nguyên UI của bạn */ }}>
+        <div style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "16px",
+            backgroundColor: "#f8fafc",
+            fontFamily: "'Be Vietnam Pro', sans-serif"
+        }}>
             <Spin size="large" />
-            <span style={{ fontSize: 16, color: "#94a3b8" }}>
+            <span style={{ fontSize: 16, fontWeight: 500, color: "#006948" }}>
                 Đang hoàn tất xác thực tài khoản Google an toàn, vui lòng chờ trong giây lát...
             </span>
         </div>
