@@ -33,7 +33,7 @@ export const ConfigSummary: React.FC<ConfigSummaryProps> = ({
 
   const handleStartExam = () => {
     notification.success({
-      message: "Khởi tạo phòng thi thành công! 🎯",
+      message: "Khởi tạo phòng thi thành công!",
       description: `Đang kết nối vào phòng thi ${formatInfo.name} - Lớp ${grade}...`,
       duration: 2,
     });

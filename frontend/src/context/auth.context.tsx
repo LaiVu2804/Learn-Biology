@@ -14,6 +14,11 @@ interface IAuthContext {
     logout: () => Promise<void>;
     setUser: React.Dispatch<React.SetStateAction<IUserLogin | null>>;
     triggerSilentRefresh: () => Promise<boolean>;
+    userRole: string;
+    isAdmin: boolean;
+    isTutor: boolean;
+    hasRole: (allowedRoles: string | string[]) => boolean;
+    hasPermission: (permissionName: string) => boolean;
 }
 
 const AuthContext = createContext<IAuthContext | null>(null);
@@ -24,22 +29,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     /**
+     * Trích xuất tên vai trò từ đối tượng user
+     */
+    const getUserRoleName = (currentUser: IUserLogin | null): string => {
+        if (!currentUser || !currentUser.role) return "ROLE_USER";
+        if (typeof currentUser.role === "string") return currentUser.role;
+        return currentUser.role.name || "ROLE_USER";
+    };
+
+    const userRole = getUserRoleName(user);
+    const isAdmin = userRole === "ROLE_ADMIN" || userRole === "ADMIN";
+    const isTutor = isAdmin || userRole === "ROLE_TUTOR" || userRole === "TUTOR" || userRole === "ROLE_TEACHER";
+
+    const hasRole = useCallback((allowedRoles: string | string[]): boolean => {
+        if (!user) return false;
+        const currentRole = getUserRoleName(user);
+        const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+        return roles.some((r) => {
+            const cleanTarget = r.replace(/^ROLE_/, "").toUpperCase();
+            const cleanCurrent = currentRole.replace(/^ROLE_/, "").toUpperCase();
+            return cleanTarget === cleanCurrent || currentRole === r;
+        });
+    }, [user]);
+
+    const hasPermission = useCallback((permissionName: string): boolean => {
+        if (!user || !user.role) return false;
+        if (isAdmin) return true; // SuperAdmin có toàn bộ quyền
+        if (typeof user.role === "object" && user.role.permissions) {
+            return (user.role.permissions as any[]).some((p) => {
+                if (typeof p === "string") return p === permissionName;
+                return p?.name === permissionName;
+            });
+        }
+        return false;
+    }, [user, isAdmin]);
+
+    /**
      * Hàm làm mới vô hình (Silent Refresh) được kích hoạt tự động theo Timer
-     * hoặc được kích hoạt thủ công khi vừa redirect từ Google về
      */
     const triggerSilentRefresh = useCallback(async (): Promise<boolean> => {
         try {
             const res = await callRefreshToken();
             if (res && res.data && res.data.access_token) {
                 const newToken = res.data.access_token;
-                // Nạp token mới vào RAM
                 setAccessToken(newToken);
                 if (res.data.user) {
                     setUser(res.data.user);
                 }
                 setIsAuthenticated(true);
-
-                // Lên lịch tiếp theo cho lần làm mới kế tiếp
                 setupSilentRefreshTimer(newToken, triggerSilentRefresh);
                 return true;
             }
@@ -54,27 +91,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     /**
-     * KHỞI ĐỘNG ỨNG DỤNG (Bootstrapping khi mở web hoặc bấm F5):
-     * Do RAM bị xóa trắng khi F5, ứng dụng sẽ tự động gửi request âm thầm
-     * kèm Cookie HttpOnly lên Backend để xin cấp Access Token mới nạp vào RAM.
+     * Bootstrapping khi mở web hoặc bấm F5
      */
     useEffect(() => {
         const bootstrapSession = async () => {
             try {
-                // Gọi API refresh token (trình duyệt tự đính kèm HttpOnly cookie)
                 const res = await callRefreshToken();
-
                 if (res && res.data && res.data.access_token) {
                     const token = res.data.access_token;
-                    // Nạp vào RAM
                     setAccessToken(token);
 
                     if (res.data.user) {
                         setUser(res.data.user);
                     }
                     setIsAuthenticated(true);
-
-                    // Thiết lập Timer Silent Refresh tự động trước khi token hết hạn
                     setupSilentRefreshTimer(token, triggerSilentRefresh);
                 } else {
                     clearAuthMemory();
@@ -82,7 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setIsAuthenticated(false);
                 }
             } catch (error) {
-                // Chưa đăng nhập hoặc cookie hết hạn -> trạng thái khách
                 clearAuthMemory();
                 setUser(null);
                 setIsAuthenticated(false);
@@ -94,29 +123,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bootstrapSession();
     }, [triggerSilentRefresh]);
 
-    /**
-     * Hàm login: Được gọi khi đăng nhập mật khẩu hoặc Google thành công
-     */
     const login = (accessToken: string, userData: IUserLogin) => {
-        // Lưu token vào RAM
         setAccessToken(accessToken);
         setUser(userData);
         setIsAuthenticated(true);
-
-        // Thiết lập bộ đếm thời gian Silent Refresh tự động
         setupSilentRefreshTimer(accessToken, triggerSilentRefresh);
     };
 
-    /**
-     * Hàm logout: Xóa session phía server và dọn sạch RAM phía client
-     */
     const logout = async () => {
         try {
             await callLogout();
         } catch (error) {
             console.error("Lỗi khi gọi API logout:", error);
         } finally {
-            // Xóa sạch token và timer trong RAM
             clearAuthMemory();
             setUser(null);
             setIsAuthenticated(false);
@@ -134,6 +153,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 logout,
                 setUser,
                 triggerSilentRefresh,
+                userRole,
+                isAdmin,
+                isTutor,
+                hasRole,
+                hasPermission,
             }}
         >
             {children}

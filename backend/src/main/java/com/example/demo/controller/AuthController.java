@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.domain.request.user.ReqLoginDTO;
 import com.example.demo.domain.response.user.RestCreateUserDTO;
 import com.example.demo.domain.response.user.RestLoginDTO;
+import com.example.demo.entity.Permission;
 import com.example.demo.entity.User;
 import com.example.demo.service.TokenRedisService;
 import com.example.demo.service.UserService;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
@@ -26,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -53,13 +57,36 @@ public class AuthController {
         this.tokenRedisService = tokenRedisService;
     }
 
+    private RestLoginDTO.Role mapToRoleDTO(User user) {
+        if (user == null || user.getRole() == null) {
+            return null;
+        }
+        List<String> permissionNames = new ArrayList<>();
+        if (user.getRole().getPermissions() != null) {
+            for (Permission p : user.getRole().getPermissions()) {
+                permissionNames.add(p.getName());
+            }
+        }
+        return new RestLoginDTO.Role(
+                user.getRole().getId(),
+                user.getRole().getName(),
+                permissionNames
+        );
+    }
+
     @PostMapping("/login")
     public ResponseEntity<RestLoginDTO> login(@Valid @RequestBody ReqLoginDTO loginDTO) {
+        // Kiểm tra tài khoản nếu đang bị khóa
+        User preCheckUser = this.userService.handleGetUserByUserName(loginDTO.getUsername());
+        if (preCheckUser != null && preCheckUser.isLocked()) {
+            throw new LockedException("tài khoản này hiện tại đang bị khóa");
+        }
+
         // 1. Tạo đối tượng UsernamePasswordAuthenticationToken nạp thông tin đăng nhập
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword());
 
-        // 2. Thực thi xác thực qua AuthenticationManager (tự động gọi UserDetailsCustom và so khớp mật khẩu BCrypt)
+        // 2. Thực thi xác thực qua AuthenticationManager
         Authentication authentication = this.authenticationManagerBuilder.getObject().authenticate(authenticationToken);
 
         // Nạp thông tin xác thực vào SecurityContext
@@ -73,7 +100,7 @@ public class AuthController {
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
                     currentUserDB.getName(),
-                    null
+                    mapToRoleDTO(currentUserDB)
             );
             res.setUser(userLogin);
         }
@@ -84,7 +111,7 @@ public class AuthController {
 
         String refreshToken = this.securityUtil.createRefreshToken(loginDTO.getUsername(), res);
 
-        // Trích xuất JTI của Refresh Token để lưu định danh phiên vào Redis (hỗ trợ đa thiết bị và thu hồi chính xác)
+        // Trích xuất JTI của Refresh Token để lưu định danh phiên vào Redis
         String refreshJti = null;
         try {
             Jwt decodedRt = this.securityUtil.checkValueRefreshToken(refreshToken);
@@ -104,22 +131,38 @@ public class AuthController {
                 .maxAge(this.refreshTokenExpiration)
                 .build();
 
-        // 7. Trả về HTTP 200 OK với header Set-Cookie chứa cookie và body là resLoginDTO
+        // 7. Trả về HTTP 200 OK
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, resCookie.toString())
                 .body(res);
+    }
+
+    @GetMapping("/account")
+    @ApiMessage("Get current user account")
+    public ResponseEntity<RestLoginDTO.UserGetAccount> getAccount() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        User currentUserDB = this.userService.handleGetUserByUserName(email);
+        RestLoginDTO.UserGetAccount userGetAccount = new RestLoginDTO.UserGetAccount();
+        if (currentUserDB != null) {
+            RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin(
+                    currentUserDB.getId(),
+                    currentUserDB.getEmail(),
+                    currentUserDB.getName(),
+                    mapToRoleDTO(currentUserDB)
+            );
+            userGetAccount.setUser(userLogin);
+        }
+        return ResponseEntity.ok(userGetAccount);
     }
 
     @GetMapping("/refresh")
     @ApiMessage("Get User by refresh token")
     public ResponseEntity<RestLoginDTO> getRefreshToken(
             @CookieValue(name = "refresh_token", defaultValue = "") String refreshToken) throws IdInvalidException {
-        // 1. Đọc Cookie: Nếu rỗng, ném lỗi yêu cầu đăng nhập lại
         if (refreshToken.isEmpty()) {
             throw new IdInvalidException("Bạn không có refresh token ở cookie, vui lòng đăng nhập lại!");
         }
 
-        // 2. Kiểm tra tính hợp lệ về mặt mật mã học (NimbusJwtDecoder kiểm tra chữ ký HS512 và expiry time)
         Jwt decodedToken;
         try {
             decodedToken = this.securityUtil.checkValueRefreshToken(refreshToken);
@@ -129,8 +172,6 @@ public class AuthController {
         String email = decodedToken.getSubject();
         String jti = decodedToken.getId();
 
-        // 3. Kiểm tra tính hợp lệ với Redis: BẮT BUỘC PHẢI TỒN TẠI VÀ KHỚP VỚI TOKEN ĐÃ CẤP
-        // Ngăn chặn 100% việc dùng lại token đã logout hoặc đã bị thu hồi
         boolean isValid = this.tokenRedisService.isRefreshTokenValid(email, jti, refreshToken);
         if (!isValid) {
             throw new IdInvalidException("Phiên đăng nhập đã hết hạn hoặc token đã bị thu hồi/đăng xuất. Vui lòng đăng nhập lại!");
@@ -138,16 +179,19 @@ public class AuthController {
 
         User currentUser = this.userService.handleGetUserByUserName(email);
         if (currentUser == null) {
-            throw new IdInvalidException("Tài khoản người dùng không tồn tại hoặc đã bị khóa!");
+            throw new IdInvalidException("Tài khoản người dùng không tồn tại!");
+        }
+        if (currentUser.isLocked()) {
+            throw new IdInvalidException("tài khoản này hiện tại đang bị khóa");
         }
 
-        // 4. Cấp phát Token mới (Refresh Token Rotation)
+        // Cấp phát Token mới (Refresh Token Rotation)
         RestLoginDTO res = new RestLoginDTO();
         RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin(
                 currentUser.getId(),
                 currentUser.getEmail(),
                 currentUser.getName(),
-                null
+                mapToRoleDTO(currentUser)
         );
         res.setUser(userLogin);
 
@@ -162,11 +206,9 @@ public class AuthController {
             newRefreshJti = newDecodedRt.getId();
         } catch (Exception ignored) {}
 
-        // Token Rotation: Xóa token cũ, lưu token mới vào Redis
         this.tokenRedisService.deleteRefreshToken(email, jti);
         this.tokenRedisService.saveRefreshToken(email, newRefreshJti, newRefreshToken, this.refreshTokenExpiration);
 
-        // 5. Ghi đè Cookie
         ResponseCookie resCookie = ResponseCookie
                 .from("refresh_token", newRefreshToken)
                 .httpOnly(true)
@@ -176,7 +218,6 @@ public class AuthController {
                 .maxAge(this.refreshTokenExpiration)
                 .build();
 
-        // 6. Response: Trả về HTTP 200 OK cùng RestLoginDTO chứa access_token mới
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, resCookie.toString())
                 .body(res);
@@ -191,20 +232,15 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<RestCreateUserDTO> register(@Valid @RequestBody User reqUser) throws IdInvalidException {
-        // 1. Kiểm tra email đã tồn tại hay chưa
         boolean isEmailExist = this.userService.isEmailExist(reqUser.getEmail());
         if (isEmailExist) {
             throw new IdInvalidException("Email " + reqUser.getEmail() + " đã tồn tại, vui lòng sử dụng email khác");
         }
 
-        // 2. Mã hóa mật khẩu bằng BCrypt
         String hashPassword = this.passwordEncoder.encode(reqUser.getPassword());
         reqUser.setPassword(hashPassword);
 
-        // 3. Lưu người dùng vào cơ sở dữ liệu
         User createdUser = this.userService.handleCreateUser(reqUser);
-
-        // 4. Trả về status 201 CREATED kèm DTO an toàn không chứa mật khẩu thô
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToRestCreateUserDTO(createdUser));
     }
 
@@ -213,7 +249,6 @@ public class AuthController {
             @CookieValue(name = "refresh_token", defaultValue = "") String refreshToken,
             @RequestHeader(name = "Authorization", defaultValue = "") String authHeader) throws IdInvalidException {
 
-        // 1. Thu hồi Access Token (nếu có và còn hạn) đưa vào Blacklist Redis
         String bearerToken = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             bearerToken = authHeader.substring(7).trim();
@@ -230,12 +265,9 @@ public class AuthController {
                         this.tokenRedisService.blacklistToken(jti, remainingSeconds);
                     }
                 }
-            } catch (Exception ignored) {
-                // Token đã hết hạn thì tự nhiên bị từ chối ở filter, không cần Blacklist
-            }
+            } catch (Exception ignored) {}
         }
 
-        // 2. Thu hồi Refresh Token trong Redis
         if (refreshToken != null && !refreshToken.isEmpty()) {
             try {
                 Jwt decodedRt = this.securityUtil.checkValueRefreshToken(refreshToken);
@@ -249,7 +281,6 @@ public class AuthController {
             SecurityUtil.getCurrentUserLogin().ifPresent(this.tokenRedisService::deleteRefreshToken);
         }
 
-        // 3. Xóa Cookie refresh_token ở trình duyệt bằng cách đặt Max-Age = 0
         ResponseCookie deleteSpringCookie = ResponseCookie
                 .from("refresh_token", "")
                 .httpOnly(true)
@@ -263,14 +294,10 @@ public class AuthController {
                 .body(null);
     }
 
-    /**
-     * Endpoint test thông tin người dùng đăng nhập bằng Google (OAuth2)
-     */
     @GetMapping("/google-user")
     public ResponseEntity<Object> getGoogleUser(Authentication authentication) {
         if (authentication != null) {
             if (authentication.getPrincipal() instanceof OAuth2User oauth2User) {
-                // Trả về Attributes dạng Map<String, Object> để tránh lỗi Jackson serialization của DefaultOidcUser
                 return ResponseEntity.ok(oauth2User.getAttributes());
             }
             return ResponseEntity.ok(authentication.getName());

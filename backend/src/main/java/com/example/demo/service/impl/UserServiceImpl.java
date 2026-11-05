@@ -6,7 +6,9 @@ import com.example.demo.domain.response.ResultPaginationDTO;
 import com.example.demo.domain.response.user.RestCreateUserDTO;
 import com.example.demo.domain.response.user.RestUpdateUserDTO;
 import com.example.demo.domain.response.user.RestUserDTO;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.repository.RoleRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.UserService;
 import com.example.demo.util.SecurityUtil;
@@ -21,16 +23,19 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -42,6 +47,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @CacheEvict(value = {"users_email", "users_id"}, allEntries = true)
     public User handleCreateUser(User user) {
+        if (user.getRole() == null) {
+            Optional<Role> defaultRole = this.roleRepository.findByName("ROLE_USER");
+            defaultRole.ifPresent(user::setRole);
+        }
         return this.userRepository.save(user);
     }
 
@@ -65,6 +74,14 @@ public class UserServiceImpl implements UserService {
         user.setGender(reqUser.getGender());
         user.setAddress(reqUser.getAddress());
 
+        if (reqUser.getRoleId() != null && reqUser.getRoleId() > 0) {
+            Role role = this.roleRepository.findById(reqUser.getRoleId()).orElse(null);
+            user.setRole(role);
+        } else {
+            Optional<Role> defaultRole = this.roleRepository.findByName("ROLE_USER");
+            defaultRole.ifPresent(user::setRole);
+        }
+
         User savedUser = this.userRepository.save(user);
 
         // Bước 4: Chuyển đổi sang RestCreateUserDTO (không lộ password)
@@ -81,10 +98,26 @@ public class UserServiceImpl implements UserService {
         }
 
         // Bước 2: Cập nhật các trường được phép
-        currentUser.setName(reqUser.getName());
-        currentUser.setAge(reqUser.getAge());
-        currentUser.setGender(reqUser.getGender());
-        currentUser.setAddress(reqUser.getAddress());
+        if (reqUser.getName() != null) {
+            currentUser.setName(reqUser.getName());
+        }
+        if (reqUser.getAge() > 0) {
+            currentUser.setAge(reqUser.getAge());
+        }
+        if (reqUser.getGender() != null) {
+            currentUser.setGender(reqUser.getGender());
+        }
+        if (reqUser.getAddress() != null) {
+            currentUser.setAddress(reqUser.getAddress());
+        }
+        if (reqUser.getRoleId() != null && reqUser.getRoleId() > 0) {
+            Role role = this.roleRepository.findById(reqUser.getRoleId()).orElse(null);
+            currentUser.setRole(role);
+        }
+        if (reqUser.getLocked() != null) {
+            currentUser.setLocked(reqUser.getLocked());
+        }
+
         currentUser.setUpdatedAt(Instant.now());
         currentUser.setUpdatedBy(SecurityUtil.getCurrentUserLogin().orElse(""));
 
@@ -149,54 +182,86 @@ public class UserServiceImpl implements UserService {
         res.setGender(user.getGender());
         res.setAddress(user.getAddress());
         res.setAge(user.getAge());
+        res.setLocked(user.isLocked());
         res.setCreatedAt(user.getCreatedAt());
         res.setUpdatedAt(user.getUpdatedAt());
         res.setCompany(null);
-        res.setRole(null);
+        if (user.getRole() != null) {
+            res.setRole(new RestUserDTO.RoleUser(user.getRole().getId(), user.getRole().getName()));
+        } else {
+            res.setRole(null);
+        }
         return res;
     }
 
     @Override
     @CacheEvict(value = {"users_email", "users_id"}, allEntries = true)
     public void handleDeleteUser(long id) throws IdInvalidException {
-        // Bước 1: Kiểm tra id hợp lệ (> 0)
         if (id <= 0) {
             throw new IdInvalidException("ID người dùng không hợp lệ");
         }
 
-        // Bước 2: Tìm kiếm User theo id
         User currentUser = this.fetchUserById(id);
         if (currentUser == null) {
             throw new IdInvalidException("User với id = " + id + " không tồn tại");
         }
 
-        // Bước 3: Xóa người dùng khỏi DB
         this.userRepository.deleteById(id);
     }
 
     @Override
     public ResultPaginationDTO fetchAllUser(Specification<User> spec, Pageable pageable) {
-        // Bước 1 (Truy vấn phân trang): Gọi userRepository.findAll(spec, pageable) -> nhận về Page<User>
         Page<User> pageUser = this.userRepository.findAll(spec, pageable);
 
-        // Bước 2 (Xây dựng Metadata phân trang):
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
         meta.setPage(pageable.getPageNumber() + 1);
         meta.setPageSize(pageable.getPageSize());
         meta.setPages(pageUser.getTotalPages());
         meta.setTotal(pageUser.getTotalElements());
 
-        // Bước 3 (Chuyển đổi danh sách dữ liệu): Map toàn bộ list User entity sang List<RestUserDTO>
         List<RestUserDTO> listUser = pageUser.getContent()
                 .stream()
                 .map(this::convertToRestUserDTO)
                 .collect(Collectors.toList());
 
-        // Bước 4 (Đóng gói ResultPaginationDTO): Gán Meta và List<RestUserDTO> vào DTO kết quả
         ResultPaginationDTO rs = new ResultPaginationDTO();
         rs.setMeta(meta);
         rs.setResult(listUser);
 
         return rs;
+    }
+
+    @Override
+    @CacheEvict(value = {"users_email", "users_id"}, allEntries = true)
+    public User updateUserRole(long userId, long roleId) throws IdInvalidException {
+        User user = this.fetchUserById(userId);
+        if (user == null) {
+            throw new IdInvalidException("Người dùng với id = " + userId + " không tồn tại!");
+        }
+        Role role = this.roleRepository.findById(roleId).orElse(null);
+        if (role == null) {
+            throw new IdInvalidException("Vai trò với id = " + roleId + " không tồn tại!");
+        }
+        user.setRole(role);
+        user.setUpdatedAt(Instant.now());
+        user.setUpdatedBy(SecurityUtil.getCurrentUserLogin().orElse("system"));
+        return this.userRepository.save(user);
+    }
+
+    @Override
+    @CacheEvict(value = {"users_email", "users_id"}, allEntries = true)
+    public User updateUserLock(long userId, Boolean locked) throws IdInvalidException {
+        User user = this.fetchUserById(userId);
+        if (user == null) {
+            throw new IdInvalidException("Người dùng với id = " + userId + " không tồn tại!");
+        }
+        if (locked != null) {
+            user.setLocked(locked);
+        } else {
+            user.setLocked(!user.isLocked());
+        }
+        user.setUpdatedAt(Instant.now());
+        user.setUpdatedBy(SecurityUtil.getCurrentUserLogin().orElse("system"));
+        return this.userRepository.save(user);
     }
 }

@@ -25,8 +25,6 @@ public interface UserService {
         return handleGetUserByUserName(username);
     }
 
-    User getUserByRefreshTokenAndEmail(String token, String email);
-
     RestCreateUserDTO convertToRestCreateUserDTO(User user);
 
     User fetchUserById(long id);
@@ -40,4 +38,8 @@ public interface UserService {
     void handleDeleteUser(long id) throws IdInvalidException;
 
     ResultPaginationDTO fetchAllUser(Specification<User> spec, Pageable pageable);
+
+    User updateUserRole(long userId, long roleId) throws IdInvalidException;
+
+    User updateUserLock(long userId, Boolean locked) throws IdInvalidException;
 }

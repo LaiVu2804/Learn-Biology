@@ -27,5 +27,6 @@ public class ReqCreateUserDTO {
     private GenderEnum gender;
 
     private String address;
-}
 
+    private Long roleId;
+}

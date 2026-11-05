@@ -98,22 +98,35 @@ public class SecurityUtil {
     }
 
     /**
-     * Tạo JWT Access Token với thuật toán HMAC-SHA-512
+     * Tạo JWT Access Token với thuật toán HMAC-SHA-512 và phân quyền linh hoạt
      */
     public String createAccessToken(String email, RestLoginDTO dto) {
         RestLoginDTO.UserInsideToken userToken = new RestLoginDTO.UserInsideToken();
+        List<String> listAuthority = new ArrayList<>();
+
         if (dto != null && dto.getUser() != null) {
             userToken.setId(dto.getUser().getId());
             userToken.setEmail(dto.getUser().getEmail());
             userToken.setName(dto.getUser().getName());
+            userToken.setRole(dto.getUser().getRole());
+
+            if (dto.getUser().getRole() != null) {
+                String roleName = dto.getUser().getRole().getName();
+                if (roleName != null && !roleName.isBlank()) {
+                    listAuthority.add(roleName);
+                }
+                if (dto.getUser().getRole().getPermissions() != null) {
+                    listAuthority.addAll(dto.getUser().getRole().getPermissions());
+                }
+            }
+        }
+
+        if (listAuthority.isEmpty()) {
+            listAuthority.add("ROLE_USER");
         }
 
         Instant now = Instant.now();
         Instant validity = now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
-
-        // Danh sách quyền hạn mặc định
-        List<String> listAuthority = new ArrayList<>();
-        listAuthority.add("ROLE_USER");
 
         String jti = UUID.randomUUID().toString();
 
@@ -139,6 +152,7 @@ public class SecurityUtil {
             userToken.setId(dto.getUser().getId());
             userToken.setEmail(dto.getUser().getEmail());
             userToken.setName(dto.getUser().getName());
+            userToken.setRole(dto.getUser().getRole());
         }
 
         Instant now = Instant.now();

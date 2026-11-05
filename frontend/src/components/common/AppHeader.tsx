@@ -12,7 +12,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   selectedGrade = "12",
   onGradeChange,
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, isTutor, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,6 +31,27 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   };
 
   const currentTab = location.pathname;
+
+  const getRoleBadge = () => {
+    if (isAdmin) {
+      return {
+        label: "SuperAdmin",
+        classes: "bg-amber-50 text-amber-700 border-amber-200",
+      };
+    }
+    if (isTutor) {
+      return {
+        label: "Giảng viên",
+        classes: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      };
+    }
+    return {
+      label: "Học viên",
+      classes: "bg-brand-emerald-surface text-brand-emerald-dark border-outline-variant/30",
+    };
+  };
+
+  const roleBadge = getRoleBadge();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface-card border-b border-border-hairline shadow-sm">
@@ -81,7 +102,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <nav className="hidden lg:flex items-center gap-1 h-full">
           <Link
             to="/home"
-            className={`px-3 py-2 rounded-lg font-label-md text-label-md transition-colors whitespace-nowrap ${
+            className={`px-3 py-2 rounded-lg font-label-md text-xs sm:text-sm transition-colors whitespace-nowrap ${
               currentTab === "/home" || currentTab === "/dashboard"
                 ? "bg-brand-emerald-surface text-brand-emerald-dark font-semibold border-b-2 border-primary"
                 : "text-text-muted hover:text-text-heading hover:bg-surface-canvas"
@@ -91,7 +112,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </Link>
           <Link
             to="/exam"
-            className={`px-3 py-2 rounded-lg font-label-md text-label-md transition-colors whitespace-nowrap ${
+            className={`px-3 py-2 rounded-lg font-label-md text-xs sm:text-sm transition-colors whitespace-nowrap ${
               currentTab === "/exam"
                 ? "bg-brand-emerald-surface text-brand-emerald-dark font-semibold border-b-2 border-primary"
                 : "text-text-muted hover:text-text-heading hover:bg-surface-canvas"
@@ -99,25 +120,54 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           >
             Phòng thi ảo
           </Link>
+
+          {/* Conditional Admin Portal Tab */}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`px-3 py-2 rounded-lg font-label-md text-xs sm:text-sm transition-colors whitespace-nowrap font-semibold ${
+                currentTab.startsWith("/admin")
+                  ? "bg-amber-100 text-amber-800 border-b-2 border-amber-600"
+                  : "text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+              }`}
+            >
+              Cổng Admin
+            </Link>
+          )}
+
+          {/* Conditional Tutor Tab */}
+          {isTutor && (
+            <Link
+              to="/tutor"
+              className={`px-3 py-2 rounded-lg font-label-md text-xs sm:text-sm transition-colors whitespace-nowrap font-semibold ${
+                currentTab.startsWith("/tutor")
+                  ? "bg-indigo-100 text-indigo-800 border-b-2 border-indigo-600"
+                  : "text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50"
+              }`}
+            >
+              Cổng Giảng viên
+            </Link>
+          )}
+
           <Link
             to="/"
-            className="px-3 py-2 rounded-lg font-label-md text-label-md text-text-muted hover:text-text-heading hover:bg-surface-canvas transition-colors whitespace-nowrap"
+            className="px-3 py-2 rounded-lg font-label-md text-xs sm:text-sm text-text-muted hover:text-text-heading hover:bg-surface-canvas transition-colors whitespace-nowrap"
           >
-            Landing Page
+            Trang chủ
           </Link>
         </nav>
 
         {/* Search, Notifications & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           {/* Quick Search Input */}
-          <div className="relative hidden md:block w-44 xl:w-52">
+          <div className="relative hidden md:block w-40 xl:w-48">
             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-text-caption text-[18px]">
               search
             </span>
             <input
               type="search"
-              placeholder="Tìm bài học, mã đề..."
-              className="w-full pl-8 pr-3 py-1.5 bg-surface-canvas text-body font-body-sm text-body-sm rounded-lg border border-border-hairline focus:border-primary focus:outline-none transition-colors placeholder:text-text-caption"
+              placeholder="Tìm câu hỏi, đề..."
+              className="w-full pl-8 pr-3 py-1.5 bg-surface-canvas text-body font-body-sm text-xs rounded-lg border border-border-hairline focus:border-primary focus:outline-none transition-colors placeholder:text-text-caption"
             />
           </div>
 
@@ -128,13 +178,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             onClick={() => {
               notification.info({
                 message: "Thông báo học tập",
-                description: "Đề Khảo sát Chuyên ĐH Sư Phạm Hà Nội 2025 (Lần 2) đã được mở tại Phòng thi ảo!",
+                description: "Hệ thống kiểm tra trực tuyến BioPrep đã cập nhật tính năng phân quyền Admin & Giảng viên!",
               });
             }}
             className="relative p-2 rounded-lg text-text-muted hover:text-text-heading hover:bg-surface-canvas transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-[22px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface-card"></span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-surface-card"></span>
           </button>
 
           <div className="h-6 w-px bg-border-hairline hidden sm:block"></div>
@@ -142,18 +192,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* User Profile Capsule */}
           <div className="flex items-center gap-2.5 pl-1">
             <div className="hidden sm:flex flex-col items-end text-right">
-              <span className="font-label-md text-label-md text-text-heading font-semibold leading-tight">
+              <span className="font-label-md text-xs font-semibold text-text-heading leading-tight">
                 {user?.name || "Học viên BioPrep"}
               </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 mt-0.5 rounded-full font-label-sm text-[10px] bg-accent-amber-surface text-tertiary font-medium border border-tertiary-fixed-dim/40">
-                Mục tiêu 9.5+ Y Hà Nội
+              <span
+                className={`inline-flex items-center px-1.5 py-0.2 mt-0.5 rounded-full text-[10px] font-semibold border ${roleBadge.classes}`}
+              >
+                {roleBadge.label}
               </span>
             </div>
             <div
-              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 text-white font-bold text-xs"
-              title={user?.email || ""}
+              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-sm"
+              title={`${user?.name || "User"} (${userRole})`}
             >
-              {user?.name ? user.name.slice(0, 2).toUpperCase() : "HV"}
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : "US"}
             </div>
             <button
               onClick={handleLogout}
@@ -170,4 +222,3 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 };
 
 export default AppHeader;
-

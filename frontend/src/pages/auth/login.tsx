@@ -91,9 +91,10 @@ export const LoginPage: React.FC<AuthPageProps> = ({ initialTab = "login" }) => 
         // Redirect to new page with "Xin chào"
         navigate("/home", { replace: true });
       } else {
-        const errorMessage = Array.isArray(res.message)
-          ? res.message.join(", ")
-          : res.message || res.error || "Email hoặc mật khẩu không chính xác!";
+        const rawMsg = res?.message || res?.error;
+        const errorMessage = Array.isArray(rawMsg)
+          ? rawMsg.join(", ")
+          : (typeof rawMsg === "string" ? rawMsg : "Email hoặc mật khẩu không chính xác!");
 
         notification.error({
           message: "Đăng nhập thất bại",
@@ -102,9 +103,15 @@ export const LoginPage: React.FC<AuthPageProps> = ({ initialTab = "login" }) => 
         });
       }
     } catch (error: any) {
+      const errDetail =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Không thể kết nối đến máy chủ. Vui lòng thử lại!";
+
       notification.error({
-        message: "Lỗi kết nối",
-        description: error?.message || "Không thể kết nối đến máy chủ. Vui lòng thử lại!",
+        message: "Đăng nhập thất bại",
+        description: Array.isArray(errDetail) ? errDetail.join(", ") : errDetail,
         duration: 4,
       });
     } finally {

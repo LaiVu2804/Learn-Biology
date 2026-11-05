@@ -24,5 +24,7 @@ public class ReqUpdateUserDTO {
 
     private String address;
 
-}
+    private Long roleId;
 
+    private Boolean locked;
+}

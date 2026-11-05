@@ -19,6 +19,7 @@ public class RestUserDTO {
     private GenderEnum gender;
     private String address;
     private int age;
+    private boolean locked;
     private Instant createdAt;
     private Instant updatedAt;
     private CompanyUser company;
@@ -42,4 +43,3 @@ public class RestUserDTO {
         private String name;
     }
 }
-

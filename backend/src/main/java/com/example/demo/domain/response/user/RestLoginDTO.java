@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -44,6 +46,7 @@ public class RestLoginDTO {
         private long id;
         private String email;
         private String name;
+        private Role role;
     }
 
     @Getter
@@ -53,6 +56,6 @@ public class RestLoginDTO {
     public static class Role {
         private long id;
         private String name;
+        private List<String> permissions;
     }
 }
-

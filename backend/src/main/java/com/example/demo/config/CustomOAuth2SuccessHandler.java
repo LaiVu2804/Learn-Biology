@@ -61,6 +61,11 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
             // 1. Kiểm tra User đã có trong DB chưa, nếu chưa có thì tạo mới
             User currentUserDB = this.userService.handleGetUserByUserName(email);
+            if (currentUserDB != null && currentUserDB.isLocked()) {
+                response.sendRedirect(this.frontendRedirectUrl + "?error=account_locked");
+                return;
+            }
+
             if (currentUserDB == null) {
                 User newUser = new User();
                 newUser.setEmail(email);

@@ -7,6 +7,9 @@ import RegisterPage from "./pages/auth/register";
 import OAuth2RedirectHandler from "./pages/auth/oauth2-redirect";
 import ExamConfigPage from "./pages/exam-config";
 import ExamRoomPage from "./pages/exam-room";
+import AdminPage from "./pages/admin";
+import TutorPage from "./pages/tutor";
+import RoleRoute from "./components/common/RoleRoute";
 
 /**
  * Component bảo vệ định tuyến (Protected Route):
@@ -78,6 +81,42 @@ const App: React.FC = () => {
               <ProtectedRoute>
                 <ExamRoomPage />
               </ProtectedRoute>
+            }
+          />
+
+          {/* CỔNG QUẢN TRỊ ADMIN (Chỉ dành cho ROLE_ADMIN) */}
+          <Route
+            path="/admin"
+            element={
+              <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
+                <AdminPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <RoleRoute allowedRoles={["ROLE_ADMIN"]}>
+                <AdminPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* CỔNG GIẢNG VIÊN KHẢO THÍ (Dành cho ROLE_TUTOR và ROLE_ADMIN) */}
+          <Route
+            path="/tutor"
+            element={
+              <RoleRoute allowedRoles={["ROLE_TUTOR", "ROLE_ADMIN"]}>
+                <TutorPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/tutor/*"
+            element={
+              <RoleRoute allowedRoles={["ROLE_TUTOR", "ROLE_ADMIN"]}>
+                <TutorPage />
+              </RoleRoute>
             }
           />
 
